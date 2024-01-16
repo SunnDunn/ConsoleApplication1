@@ -35,7 +35,6 @@ int main(void)
         float angle = 0.0;
         for (int k = 0; k < 5; ++k) {
             glVertex2f(cos(angle), sin(angle));
-            /*std::cout << cos(angle) << " " << sin(angle) << std::endl;*/
             angle += angleIncrement;
         }
         glEnd();
