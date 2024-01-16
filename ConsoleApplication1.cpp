@@ -1,4 +1,8 @@
-#include <GLFW/glfw3.h>
+# define _USE_MATH_DEFINES
+
+# include <GLFW/glfw3.h>
+# include <cmath>
+# include <iostream>
 
 int main(void)
 {
@@ -9,7 +13,7 @@ int main(void)
         return -1;
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 400, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(640, 400, "Atasha Limcuando", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -25,12 +29,15 @@ int main(void)
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
 
+        float angleIncrement = 360.0 / 5;
+        angleIncrement *= M_PI / 180.0;
         glBegin(GL_POLYGON);
-        glVertex2f(-0.5f, -0.5f);
-        glVertex2f(0.0f, 0.5f);
-        glVertex2f(0.5f, -0.5f);
-        glVertex2f(1.0f, 1.0f);
-        glVertex2f(3.0f, 4.0f);
+        float angle = 0.0;
+        for (int k = 0; k < 5; ++k) {
+            glVertex2f(cos(angle), sin(angle));
+            /*std::cout << cos(angle) << " " << sin(angle) << std::endl;*/
+            angle += angleIncrement;
+        }
         glEnd();
 
         /* Swap front and back buffers */
