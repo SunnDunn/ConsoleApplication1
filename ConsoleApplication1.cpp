@@ -1,5 +1,3 @@
-# define _USE_MATH_DEFINES
-
 # include <string> 
 # include <iostream>
 # include <glad/glad.h>
@@ -11,43 +9,46 @@
 # define TINYOBJLOADER_IMPLEMENTATION
 # include "tiny_obj_loader.h"
 
+# define STB_IMAGE_IMPLEMENTATION
+# include "stb_image.h"
+
 float x_mod = 0;
 float z_mod = -2.f;
 
 glm::mat4 identity_matrix = glm::mat4(1.0f);
 
 float x = 0.f, y = 0.f, z = -5.f;
-float scale_x = 1.0f, scale_y = 1.0f, scale_z = 1.0f;
+float scale_x = 3.0f, scale_y = 3.0f, scale_z = 3.0f;
 float theta = 90.0f;
-float axis_x = 0.f, axis_y = 1.0f, axis_z = 0.f;
+float axis_x = 0.f, axis_y = 1.0f, axis_z = 1.0f;
 
 void Key_Callback(GLFWwindow* window, //pointer to the window
-                  int key, //Keycode of the press
-                  int scancode, //Physical Position of the press
-                  int action, //Either Press / Release
-                  int mods) //Which modifier keys is held down
+    int key, //Keycode of the press
+    int scancode, //Physical Position of the press
+    int action, //Either Press / Release
+    int mods) //Which modifier keys is held down
 {
     //When user presses D
-    if (key == GLFW_KEY_D && action == GLFW_PRESS)
+    if (key == GLFW_KEY_D)
     {
         //Move bunny to right
-        x_mod += 20.f;
+        x_mod += 30.f;
     }
 
-    if (key == GLFW_KEY_A && action == GLFW_PRESS)
+    if (key == GLFW_KEY_A)
     {
         //Move bunny to right
-        x_mod -= 20.f;
+        x_mod -= 30.f;
     }
 
-    if (key == GLFW_KEY_W && action == GLFW_PRESS)
+    if (key == GLFW_KEY_W)
     {
-        z_mod -= 0.3f;
+        z_mod -= 1.f;
     }
 
-    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    if (key == GLFW_KEY_S)
     {
-        z_mod += 0.3f;
+        z_mod += 1.f;
     }
 }
 
@@ -73,6 +74,46 @@ int main(void)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
     gladLoadGL();
+
+    int img_width, //width of the image
+        img_height, //height of the image
+        colorChannels; //number of color channels
+
+    stbi_set_flip_vertically_on_load(true);
+
+    unsigned char* tex_bytes =
+        stbi_load("3D/ayaya.png", //texture path
+            &img_width, //fills out the width
+            &img_height, //fills out the height
+            &colorChannels, //fills out the color channel
+            0);
+
+    //OpenGL reference to the texture
+    GLuint texture;
+    //Generate a reference
+    glGenTextures(1, &texture);
+    //Set the current texture we're working on to texture 0
+    glActiveTexture(GL_TEXTURE0);
+    //Bind our next task to tex0 to our current reference similar to what were doing to VBO
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    //Assign the loaded texture to the openGL reference
+    glTexImage2D(GL_TEXTURE_2D,
+        0, //texture 0
+        GL_RGBA, //target color format of the texture
+        img_width, //texture width
+        img_height, //texture height
+        0,
+        GL_RGBA, //color format of the texture
+        GL_UNSIGNED_BYTE,
+        tex_bytes); //loaded texture in bytes
+
+    //Generate the mipmaps to the current texture
+    glGenerateMipmap(GL_TEXTURE_2D);
+    //Free up the loaded bytes
+    stbi_image_free(tex_bytes);
+    //enable depth testing
+    glEnable(GL_DEPTH_TEST);
 
     //glViewport(0, 0, 300, 600);
 
@@ -139,7 +180,7 @@ int main(void)
         return 0;
     }
 
-    std::string path = "3D/bunny.obj";
+    std::string path = "3D/myCube.obj";
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> material;
     std::string warning, error;
@@ -157,6 +198,17 @@ int main(void)
 
     std::vector<GLuint> mesh_indices;
 
+    GLfloat UV[]{
+        0.f, 1.f,
+        0.f, 0.f,
+        1.f, 1.f,
+        1.f, 0.f,
+        1.f, 1.f,
+        1.f, 0.f,
+        0.f, 1.f,
+        0.f, 0.f
+    };
+
     if (success) {
         for (int i = 0; i < shapes[0].mesh.indices.size(); i++)
         {
@@ -170,7 +222,7 @@ int main(void)
     GLfloat vertices[]{
         //x   y    z
         0, 0.5f, 0.f, //0
-        -0.5f, 0-.5f, 0.f, //1
+        -0.5f, 0 - .5f, 0.f, //1
         0.5f, -0.5f, 0.f //2
     };
 
@@ -178,17 +230,19 @@ int main(void)
         0,1,2
     };
 
-    GLuint VAO, VBO, EBO;
+    GLuint VAO, VBO, EBO, VBO_UV;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    //generate our UV buffer
+    glGenBuffers(1, &VBO_UV);
     glGenBuffers(1, &EBO);
 
     //Currently editing VAO = NULL
     glBindVertexArray(VAO);
     //Currently editing VBO = NULL
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
- 
-    glBufferData(GL_ARRAY_BUFFER, 
+
+    glBufferData(GL_ARRAY_BUFFER,
         sizeof(GL_FLOAT) * attributes.vertices.size(), //bytes
         attributes.vertices.data(), //array == &attributes.vertices[0]
         GL_STATIC_DRAW);
@@ -213,6 +267,27 @@ int main(void)
     //    <- EBO
 
     glEnableVertexAttribArray(0);
+
+    //Bind the UV buffer
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_UV);
+
+    //Add in the buffer data
+    glBufferData(GL_ARRAY_BUFFER,
+        sizeof(GLfloat) * (sizeof(UV) / sizeof(UV[0])), //float * size of the UV array
+        &UV[0], // the UV array from earlier
+        GL_DYNAMIC_DRAW);
+
+    //Add in how to interpret the array
+    glVertexAttribPointer(
+        2, // 2 for UV for tex coords
+        2, //UV
+        GL_FLOAT, //Type of array
+        GL_FALSE,
+        2 * sizeof(float), //every 2 index 
+        (void*)0
+    );
+
+    glEnableVertexAttribArray(2);
 
     //Currently editing VBO = VBO
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -240,14 +315,64 @@ int main(void)
         100.f //zfar
     );
 
+    glm::vec3 cameraPos = glm::vec3(0, 0, 10.f); //defailt position is 0, 0, 10
+
+    //or just use glm::lookat(eye, center, worldup);
+
+    glm::mat4 cameraPositionMatrix =
+        glm::translate(glm::mat4(1.0f), //initialize it as an identity matrix
+            cameraPos * -1.0f); //multiply to -1 since we need -P
+
+    glm::vec3 WorldUp = glm::vec3(0, 1.0f, 0);
+    glm::vec3 Center = glm::vec3(0, 0.f, 0);
+
+    //Get the forward
+    glm::vec3 F = glm::vec3(Center - cameraPos);
+    //Normalize the forward
+    F = glm::normalize(F);
+
+    //Get the right
+    glm::vec3 R = glm::normalize(
+        //F X Worldup
+        glm::cross(F, WorldUp)
+    );
+
+    //Get the up
+    glm::vec3 U = glm::normalize(
+        //R X F
+        glm::cross(R, F)
+    );
+
+    glm::lookAt(cameraPos, Center, WorldUp);
+
+    glm::mat4 cameraOrientation = glm::mat4(1.f);
+
+    //Manually assign the matrix
+    //Matrix[col][row]
+
+    cameraOrientation[0][0] = R.x;
+    cameraOrientation[1][0] = R.y;
+    cameraOrientation[2][0] = R.z;
+
+    cameraOrientation[0][1] = U.x;
+    cameraOrientation[1][1] = U.y;
+    cameraOrientation[2][1] = U.z;
+
+    cameraOrientation[0][2] = -F.x;
+    cameraOrientation[1][2] = -F.y;
+    cameraOrientation[2][2] = -F.z;
+
+    //Camera view matrix
+    glm::mat4 viewMatrix = glm::lookAt(cameraPos, Center, WorldUp);//cameraOrientation * cameraPositionMatrix;
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         /* Render here */
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        z = z_mod;
-        theta = x_mod;
+        axis_x = z_mod; //z
+        theta = x_mod; //theta
 
         //Start with the translation matrix
         glm::mat4 transformation_matrix = glm::translate(
@@ -277,13 +402,28 @@ int main(void)
         unsigned int transformLoc = glGetUniformLocation(shaderProg, "transform");
         //Assign the matrix
         glUniformMatrix4fv(transformLoc, //Addess of the transform variable
-                           1, //How many matrixes to assign
-                           GL_FALSE, //Transpose?
-                           glm::value_ptr(transformation_matrix)); //Pointer to the matrix;
+            1, //How many matrixes to assign
+            GL_FALSE, //Transpose?
+            glm::value_ptr(transformation_matrix)); //Pointer to the matrix;
+
+        //setting the cameraLoc
+        unsigned int viewLoc = glGetUniformLocation(shaderProg, "view");
+        glUniformMatrix4fv(viewLoc, //Address of the variable
+            1, //how many values are we modifying
+            GL_FALSE, //transpose or not
+            glm::value_ptr(viewMatrix)); //view matrix
 
         glUseProgram(shaderProg);
         glBindVertexArray(VAO);
         //glDrawArrays(GL_TRIANGLES, 0, 3); //polygon, index, numpoints
+
+        //Get the location of tex0 in the fragment shader
+        GLuint tex0Address = glGetUniformLocation(shaderProg, "tex0");
+        //Tell opengl to use the texture
+        glBindTexture(GL_TEXTURE_2D, texture);
+        //use the texture at 0
+        glUniform1i(tex0Address, 0);
+
         glDrawElements(GL_TRIANGLES, mesh_indices.size(), GL_UNSIGNED_INT, 0);
 
         /* Swap front and back buffers */
